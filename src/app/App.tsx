@@ -12,6 +12,7 @@ import {
   Zap,
   Paintbrush2,
   SquareStack,
+  Scroll,
   DoorOpen,
   Package,
   TriangleAlert,
@@ -35,7 +36,12 @@ const services = [
   { icon: Droplets,      label: "Inst. sanitarias" },
   { icon: Zap,           label: "Inst. eléctricas" },
   { icon: Paintbrush2,   label: "Pintura" },
-  { icon: SquareStack,   label: "Revestimientos vinílicos y empapelado" },
+  {
+    icon: SquareStack,
+    label: "Revestimientos vinílicos",
+    desktopLabel: "Revestimientos vinílicos y empapelados",
+  },
+  { icon: Scroll,        label: "Empapelados", hideOnDesktop: true },
   { icon: DoorOpen,      label: "Carpintería" },
   { icon: Package,       label: "Mobiliario y equipamiento" },
   { icon: TriangleAlert, label: "Señalética" },
@@ -335,10 +341,12 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-primary-foreground/10">
-            {services.map(({ icon: Icon, label }) => (
+            {services.map(({ icon: Icon, label, desktopLabel, hideOnDesktop }) => (
               <div
                 key={label}
-                className="group flex min-h-[190px] flex-col items-center justify-start gap-5 py-10 px-6 text-center bg-primary cursor-default hover:bg-primary-foreground/5 transition-colors duration-200"
+                className={`group min-h-[190px] flex-col items-center justify-start gap-5 py-10 px-6 text-center bg-primary cursor-default hover:bg-primary-foreground/5 transition-colors duration-200 ${
+                  hideOnDesktop ? "flex sm:hidden" : "flex"
+                }`}
               >
                 <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center bg-primary-foreground/5 border border-primary-foreground/10 group-hover:bg-accent group-hover:border-accent transition-colors duration-300">
                   <Icon
@@ -351,7 +359,14 @@ export default function App() {
                   className="text-xl font-medium text-primary-foreground/80 group-hover:text-primary-foreground transition-colors duration-200 leading-snug"
                   style={{ fontFamily: "Lora, Georgia, serif" }}
                 >
-                  {label}
+                  {desktopLabel ? (
+                    <>
+                      <span className="sm:hidden">{label}</span>
+                      <span className="hidden sm:inline">{desktopLabel}</span>
+                    </>
+                  ) : (
+                    label
+                  )}
                 </span>
               </div>
             ))}
