@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { getExampleNumber } from "libphonenumber-js";
 import examples from "libphonenumber-js/examples.mobile";
+import toast, { Toaster } from "react-hot-toast";
 import PhoneInput from "react-phone-number-input";
 import type { Country } from "react-phone-number-input";
 import es from "react-phone-number-input/locale/es.json";
@@ -112,11 +113,13 @@ export default function App() {
 
     if (!googleScriptUrl) {
       setSubmitStatus("error");
+      toast.error("Falta configurar el endpoint del formulario.");
       console.error("Falta configurar VITE_GOOGLE_SCRIPT_URL.");
       return;
     }
 
     setSubmitStatus("sending");
+    const toastId = toast.loading("Enviando consulta...");
 
     try {
       await fetch(googleScriptUrl, {
@@ -142,9 +145,17 @@ export default function App() {
       });
       setPhoneCountry(defaultPhoneCountry);
       setSubmitStatus("sent");
+      toast.success("Consulta enviada correctamente.", {
+        id: toastId,
+      });
     } catch (error) {
       console.error(error);
       setSubmitStatus("error");
+      toast.error("No se pudo enviar la consulta.", {
+        id: toastId,
+      });
+    } finally {
+      setSubmitStatus((status) => (status === "sending" ? "idle" : status));
     }
   };
 
@@ -192,6 +203,28 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            borderRadius: "0",
+            color: "#1A1E1C",
+            fontSize: "0.875rem",
+          },
+          success: {
+            iconTheme: {
+              primary: "#1F3D30",
+              secondary: "#FFFFFF",
+            },
+          },
+          loading: {
+            iconTheme: {
+              primary: "#C9A84C",
+              secondary: "#FFFFFF",
+            },
+          },
+        }}
+      />
 
       {/* ══ NAV ══ */}
       <header className="fixed top-0 inset-x-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
@@ -516,89 +549,83 @@ export default function App() {
               onSubmit={handleSubmit}
               className="flex flex-col gap-5"
             >
-              <div className="grid sm:grid-cols-2 gap-5">
-                <Field label="Nombre *">
-                  <input
-                    required
-                    value={form.nombre}
-                    onChange={set("nombre")}
-                    placeholder="Su nombre completo"
-                    className={inputCls}
+              <fieldset
+                disabled={submitStatus === "sending"}
+                className="flex flex-col gap-5 disabled:pointer-events-none disabled:opacity-70"
+              >
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <Field label="Nombre *">
+                    <input
+                      required
+                      value={form.nombre}
+                      onChange={set("nombre")}
+                      placeholder="Su nombre completo"
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Empresa *">
+                    <input
+                      required
+                      value={form.empresa}
+                      onChange={set("empresa")}
+                      placeholder="Nombre de la empresa o institución"
+                      className={inputCls}
+                    />
+                  </Field>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <Field label="Teléfono">
+                    <PhoneInput
+                      key={phoneCountry ?? "international"}
+                      defaultCountry={phoneCountry ?? defaultPhoneCountry}
+                      labels={es}
+                      value={form.telefono || undefined}
+                      onChange={(value) =>
+                        setForm((f) => ({ ...f, telefono: value ?? "" }))
+                      }
+                      onCountryChange={(country) => {
+                        setPhoneCountry(country);
+                        setForm((f) =>
+                          f.telefono ? { ...f, telefono: "" } : f
+                        );
+                      }}
+                      placeholder={getPhonePlaceholder(phoneCountry)}
+                      className={`${inputCls} edilcare-phone-input`}
+                    />
+                  </Field>
+                  <Field label="Email *">
+                    <input
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={set("email")}
+                      placeholder="su@email.com"
+                      className={inputCls}
+                    />
+                  </Field>
+                </div>
+                <Field label="Mensaje">
+                  <textarea
+                    rows={5}
+                    value={form.mensaje}
+                    onChange={set("mensaje")}
+                    placeholder="Describí el espacio, el tipo de trabajo y cualquier detalle relevante..."
+                    className={`${inputCls} resize-none`}
                   />
                 </Field>
-                <Field label="Empresa *">
-                  <input
-                    required
-                    value={form.empresa}
-                    onChange={set("empresa")}
-                    placeholder="Nombre de la empresa o institución"
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-5">
-                <Field label="Teléfono">
-                  <PhoneInput
-                    key={phoneCountry ?? "international"}
-                    defaultCountry={phoneCountry ?? defaultPhoneCountry}
-                    labels={es}
-                    value={form.telefono || undefined}
-                    onChange={(value) =>
-                      setForm((f) => ({ ...f, telefono: value ?? "" }))
-                    }
-                    onCountryChange={(country) => {
-                      setPhoneCountry(country);
-                      setForm((f) =>
-                        f.telefono ? { ...f, telefono: "" } : f
-                      );
-                    }}
-                    placeholder={getPhonePlaceholder(phoneCountry)}
-                    className={`${inputCls} edilcare-phone-input`}
-                  />
-                </Field>
-                <Field label="Email *">
-                  <input
-                    type="email"
-                    required
-                    value={form.email}
-                    onChange={set("email")}
-                    placeholder="su@email.com"
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-              <Field label="Mensaje">
-                <textarea
-                  rows={5}
-                  value={form.mensaje}
-                  onChange={set("mensaje")}
-                  placeholder="Describí el espacio, el tipo de trabajo y cualquier detalle relevante..."
-                  className={`${inputCls} resize-none`}
-                />
-              </Field>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
-                <p className="text-xs text-primary-foreground/50">
-                  Visita técnica sin cargo · Respuesta en 24 hs hábiles
-                </p>
-                <button
-                  type="submit"
-                  disabled={submitStatus === "sending"}
-                  className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-8 py-3.5 text-sm font-semibold hover:opacity-90 transition-opacity duration-150 flex-shrink-0"
-                >
-                  {submitStatus === "sending" ? "Enviando..." : "Enviar consulta"}
-                  <ArrowRight size={15} />
-                </button>
-              </div>
-              {submitStatus === "sent" && (
-                <p className="text-sm text-primary-foreground/70">
-                  Consulta enviada correctamente.
-                </p>
-              )}
-              {submitStatus === "error" && (
-                <p className="text-sm text-primary-foreground/70">
-                  No se pudo enviar la consulta. Revisá la configuración del formulario.
-                </p>
-              )}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
+                  <p className="text-xs text-primary-foreground/50">
+                    Visita técnica sin cargo · Respuesta en 24 hs hábiles
+                  </p>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-8 py-3.5 text-sm font-semibold hover:opacity-90 transition-opacity duration-150 flex-shrink-0 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {submitStatus === "sending" ? "Enviando..." : "Enviar consulta"}
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
+              </fieldset>
             </form>
           </div>
         </div>

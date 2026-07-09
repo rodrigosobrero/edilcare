@@ -71,5 +71,8 @@ function notifyOwner_(spreadsheet, payload, date) {
     `Planilla: ${spreadsheet.getUrl()}`,
   ].join("\n");
 
-  MailApp.sendEmail(ownerEmail, subject, body);
+  MailApp.sendEmail(ownerEmail, subject, body, {
+    name: "Landing Page",
+    replyTo: payload.email || ownerEmail,
+  });
 }
