@@ -489,7 +489,6 @@ export default function App() {
                     onChange={(value) =>
                       setForm((f) => ({ ...f, telefono: value ?? "" }))
                     }
-                    placeholder="+54 11 ..."
                     className={`${inputCls} edilcare-phone-input`}
                   />
                 </Field>
