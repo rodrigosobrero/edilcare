@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { getExampleNumber } from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile";
 import PhoneInput from "react-phone-number-input";
+import type { Country } from "react-phone-number-input";
 import es from "react-phone-number-input/locale/es.json";
 import "react-phone-number-input/style.css";
 import {
@@ -77,10 +80,20 @@ const sectors = [
   },
 ];
 
+const defaultPhoneCountry: Country = "AR";
+
+const getPhonePlaceholder = (country?: Country) => {
+  if (country === "AR") return "11 2345-6789";
+
+  return getExampleNumber(country ?? defaultPhoneCountry, examples)?.formatNational() ?? "";
+};
+
 /* ── COMPONENT ── */
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState<Country | undefined>(defaultPhoneCountry);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [form, setForm] = useState({
     nombre: "",
     empresa: "",
@@ -91,6 +104,49 @@ export default function App() {
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const googleScriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+
+    if (!googleScriptUrl) {
+      setSubmitStatus("error");
+      console.error("Falta configurar VITE_GOOGLE_SCRIPT_URL.");
+      return;
+    }
+
+    setSubmitStatus("sending");
+
+    try {
+      await fetch(googleScriptUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
+        body: JSON.stringify({
+          ...form,
+          paisTelefono: phoneCountry ?? "",
+          origen: window.location.href,
+          fecha: new Date().toISOString(),
+        }),
+      });
+
+      setForm({
+        nombre: "",
+        empresa: "",
+        telefono: "",
+        email: "",
+        mensaje: "",
+      });
+      setPhoneCountry(defaultPhoneCountry);
+      setSubmitStatus("sent");
+    } catch (error) {
+      console.error(error);
+      setSubmitStatus("error");
+    }
+  };
 
   useEffect(() => {
     const elements = document.querySelectorAll(".reveal-on-scroll");
@@ -457,7 +513,7 @@ export default function App() {
 
             {/* form */}
             <form
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleSubmit}
               className="flex flex-col gap-5"
             >
               <div className="grid sm:grid-cols-2 gap-5">
@@ -483,12 +539,20 @@ export default function App() {
               <div className="grid sm:grid-cols-2 gap-5">
                 <Field label="Teléfono">
                   <PhoneInput
-                    defaultCountry="AR"
+                    key={phoneCountry ?? "international"}
+                    defaultCountry={phoneCountry ?? defaultPhoneCountry}
                     labels={es}
                     value={form.telefono || undefined}
                     onChange={(value) =>
                       setForm((f) => ({ ...f, telefono: value ?? "" }))
                     }
+                    onCountryChange={(country) => {
+                      setPhoneCountry(country);
+                      setForm((f) =>
+                        f.telefono ? { ...f, telefono: "" } : f
+                      );
+                    }}
+                    placeholder={getPhonePlaceholder(phoneCountry)}
                     className={`${inputCls} edilcare-phone-input`}
                   />
                 </Field>
@@ -518,12 +582,23 @@ export default function App() {
                 </p>
                 <button
                   type="submit"
+                  disabled={submitStatus === "sending"}
                   className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-8 py-3.5 text-sm font-semibold hover:opacity-90 transition-opacity duration-150 flex-shrink-0"
                 >
-                  Enviar consulta
+                  {submitStatus === "sending" ? "Enviando..." : "Enviar consulta"}
                   <ArrowRight size={15} />
                 </button>
               </div>
+              {submitStatus === "sent" && (
+                <p className="text-sm text-primary-foreground/70">
+                  Consulta enviada correctamente.
+                </p>
+              )}
+              {submitStatus === "error" && (
+                <p className="text-sm text-primary-foreground/70">
+                  No se pudo enviar la consulta. Revisá la configuración del formulario.
+                </p>
+              )}
             </form>
           </div>
         </div>
