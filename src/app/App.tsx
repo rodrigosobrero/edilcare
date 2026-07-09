@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import PhoneInput from "react-phone-number-input";
+import es from "react-phone-number-input/locale/es.json";
+import "react-phone-number-input/style.css";
 import {
   Menu,
   X,
@@ -159,7 +162,7 @@ export default function App() {
                 key={l.href}
                 href={l.href}
                 onClick={(event) => scrollToSection(event, l.href)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
+                className="menu-line-link text-sm text-muted-foreground hover:text-foreground transition-colors duration-150"
               >
                 {l.label}
               </a>
@@ -188,7 +191,7 @@ export default function App() {
               <a
                 key={l.href}
                 href={l.href}
-                className="text-sm text-foreground"
+                className="menu-line-link w-fit text-sm text-foreground"
                 onClick={(event) => scrollToSection(event, l.href)}
               >
                 {l.label}
@@ -479,12 +482,15 @@ export default function App() {
               </div>
               <div className="grid sm:grid-cols-2 gap-5">
                 <Field label="Teléfono">
-                  <input
-                    type="tel"
-                    value={form.telefono}
-                    onChange={set("telefono")}
+                  <PhoneInput
+                    defaultCountry="AR"
+                    labels={es}
+                    value={form.telefono || undefined}
+                    onChange={(value) =>
+                      setForm((f) => ({ ...f, telefono: value ?? "" }))
+                    }
                     placeholder="+54 11 ..."
-                    className={inputCls}
+                    className={`${inputCls} edilcare-phone-input`}
                   />
                 </Field>
                 <Field label="Email *">
